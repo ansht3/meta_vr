@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ee0a5db7462b764094b0d8e02abcb8a, type: 3}
+  m_Name: UnityIE-Yolo12s
+  m_EditorClassIdentifier: 
+  supportedInferenceTypes: 4
+  modelFile: {fileID: 5022602860645237092, guid: b6a9dbfe610ce50478955afb48a62689, type: 3}
+  modelContentId: 0
+  classLabelsContentId: 0
+  backend: 256
+  classLabelsAsset: {fileID: 4900000, guid: 0b059c27e0a0d614481c4045d954cfc9, type: 3}
+  splitOverFrames: 1
+  layersPerFrame: 20
+  inputWidth: 640
+  inputHeight: 640
+  nmsShader: {fileID: 7200000, guid: 28ac39a8e5009184d838d8e8c444bd6d, type: 3}
+  maxDetections: 100

@@ -1,0 +1,17 @@
+{
+  "name": "com.meta.metamatic",
+  "displayName": "Metamatic",
+  "version": "0.0.1",
+  "unity": "2022.3",
+  "unityRelease": "15f1",
+  "description": "Little Animated Robot.",
+  "documentationUrl": "",
+  "samples": [],
+  "dependencies": {
+    "com.unity.mathematics": "1.2.1"
+  },
+  "author": {
+    "name": "Meta Platforms, Inc.",
+    "url": "https://developers.meta.com/horizon/"
+  }
+}

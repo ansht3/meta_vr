@@ -1,0 +1,5 @@
+Design: Maurizio Nitti
+Model: Maurizio Nitti
+Textures: Maurizio Nitti
+Animations: Maurizio Nitti
+Character controller / Implementation: Maurizio Nitti
