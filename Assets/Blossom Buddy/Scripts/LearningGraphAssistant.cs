@@ -66,20 +66,25 @@ public class LearningGraphAssistant : MonoBehaviour
     [Header("System Prompt")]
     [TextArea(6, 12)]
         public string systemPrompt =
-        "You are a learning assistant. Create a HIGH-LEVEL conceptual learning graph. Focus on BROAD topics and fundamental concepts, NOT step-by-step instructions.\n\n" +
-        "Respond with ONLY JSON in this format:\n" +
+        "You are a learning assistant. Your response must have TWO parts separated by '---JSON---':\n\n" +
+        "PART 1 - SPOKEN INTRODUCTION:\n" +
+        "1. One sentence describing the problem or topic\n" +
+        "2. If it's a specific problem: provide step-by-step solution instructions\n" +
+        "3. End with something like: 'To delve deeper, I have also created a spatial learning graph to cover the topics you need to further understand.'\n\n" +
+        "Then write EXACTLY: ---JSON---\n\n" +
+        "PART 2 - JSON LEARNING GRAPH:\n" +
+        "Create a HIGH-LEVEL conceptual learning graph. Focus on BROAD topics and fundamental concepts, NOT step-by-step instructions.\n" +
         "{\n" +
         "  \"adjList\": {\n" +
         "    \"subject\": \"<broad topic area — e.g. 'Graph Algorithms for Technical Interviews'>\",\n" +
         "    \"nodes\": [\n" +
         "      { \"id\": \"<unique_id>\", \"topic\": \"<BROAD concept like 'DFS', 'Graph Theory', 'Interview Patterns'>\", \"small_content\": [\"<1-2 key insights>\"], \"resources\": \"<relevant links>\", \"overall_summary\": \"<why this concept matters>\" }\n" +
         "    ],\n" +
-        "    \"edges\": [[\"<prerequisite_id>\", \"<node_id>\"]]\n" +
+        "    \"edges\": [[\"<prerequisite_node_id>\", \"<node_id>\"]]\n" +
         "  }\n" +
         "}\n\n" +
-        "Create 3-6 nodes representing MAJOR concepts or knowledge areas. Each node should be a fundamental topic (e.g., 'Depth-First Search', 'Interview Strategy', 'Problem Patterns'), NOT granular steps. " +
-        "EDGES represent PREREQUISITES: [\"<prerequisite_id>\", \"<node_id>\"] means prerequisite_id must be learned BEFORE node_id. Example: [\"graph_basics\", \"dfs\"] means learn graph basics before DFS. " +
-        "Connect nodes showing clear prerequisite relationships. Focus on what the user needs to LEARN, not how to solve one specific problem. NO markdown, NO code fences, NO extra text outside JSON.";
+        "Create 3-6 nodes representing MAJOR concepts or knowledge areas. EDGES represent PREREQUISITES: [\"<prerequisite_id>\", \"<node_id>\"] means prerequisite_id must be learned BEFORE node_id. Example: [\"graph_basics\", \"dfs\"].\n" +
+        "CRITICAL: The JSON MUST have the \"adjList\" wrapper. NO markdown, NO code fences, NO extra text after JSON.";
 
     private bool isListening = false;
     public bool IsListening => isListening;
@@ -233,56 +238,120 @@ public class LearningGraphAssistant : MonoBehaviour
             Debug.Log("=== LLM RESPONSE END ===");
         }
 
-        // (A) Speak the top part or entire reply
-        if (tts != null)
+        // Split response on delimiter
+        string delimiter = "---JSON---";
+        string spokenPart = llmReply;
+        string jsonPart = "";
+        
+        int delimiterIndex = llmReply.IndexOf(delimiter);
+        Debug.Log($"[LearningGraphAssistant] Delimiter '---JSON---' found at index: {delimiterIndex}");
+        
+        if (delimiterIndex >= 0)
         {
-            Debug.Log("[LearningGraphAssistant] Speaking response via TTS");
-            // Extract only the spoken part (before JSON)
-            string spokenPart = llmReply;
-            int jsonStart = llmReply.IndexOf('{');
-            Debug.Log($"[LearningGraphAssistant] JSON start index: {jsonStart}");
+            // Split into spoken and JSON parts
+            spokenPart = llmReply.Substring(0, delimiterIndex).Trim();
+            jsonPart = llmReply.Substring(delimiterIndex + delimiter.Length).Trim();
             
+            Debug.Log($"[LearningGraphAssistant] Spoken part length: {spokenPart.Length}");
+            Debug.Log($"[LearningGraphAssistant] JSON part length: {jsonPart.Length}");
+        }
+        else
+        {
+            Debug.LogWarning("[LearningGraphAssistant] Delimiter not found, falling back to old method");
+            // Fallback: try to find JSON start
+            int jsonStart = llmReply.IndexOf('{');
             if (jsonStart > 0)
             {
                 spokenPart = llmReply.Substring(0, jsonStart).Trim();
+                jsonPart = llmReply.Substring(jsonStart).Trim();
             }
-            
-            Debug.Log($"[LearningGraphAssistant] Speaking text length: {spokenPart?.Length ?? 0}");
+        }
+
+        // (A) Speak ONLY Part 1
+        if (tts != null && !string.IsNullOrEmpty(spokenPart))
+        {
+            Debug.Log("[LearningGraphAssistant] Speaking Part 1 via TTS");
             Debug.Log($"[LearningGraphAssistant] Speaking text: '{spokenPart}'");
             tts.SpeakText(spokenPart);
         }
         else
         {
-            Debug.LogWarning("[LearningGraphAssistant] TTS component not found, cannot speak response");
+            Debug.LogWarning("[LearningGraphAssistant] TTS component not found or no spoken part, cannot speak response");
         }
 
-        // (B) Extract JSON portion for knowledge graph
-        string jsonExtract = ExtractJsonOnly(llmReply);
+        // (B) Extract JSON from Part 2 only
+        string jsonExtract = ExtractJsonOnly(jsonPart);
 
         if (!string.IsNullOrEmpty(jsonExtract))
         {
             Debug.Log("=== JSON EXTRACTION START ===");
-            Debug.Log($"[LearningGraphAssistant] Extracted JSON:\n{jsonExtract}");
+            Debug.Log($"[LearningGraphAssistant] JSON Extract length: {jsonExtract.Length} characters");
+            
+            // Log JSON in chunks to avoid truncation
+            int jsonChunkSize = 300;
+            for (int i = 0; i < jsonExtract.Length; i += jsonChunkSize)
+            {
+                int length = Mathf.Min(jsonChunkSize, jsonExtract.Length - i);
+                string chunk = jsonExtract.Substring(i, length);
+                Debug.Log($"[LearningGraphAssistant] JSON chunk {i / jsonChunkSize + 1}: {chunk}");
+            }
             
             // Parse JSON into object
             KnowledgeGraphData graphData = ParseJsonToObject(jsonExtract);
-            if (graphData != null)
+            if (graphData != null && graphData.adjList != null)
             {
                 knowledgeGraphHistory.Add(graphData);
                 Debug.Log("=== KNOWLEDGE GRAPH DATA ===");
-                Debug.Log($"Subject: {graphData.adjList.subject}");
-                Debug.Log($"Nodes ({graphData.adjList.nodes.Count}):");
-                foreach (var node in graphData.adjList.nodes)
+                Debug.Log($"Subject: {graphData.adjList.subject ?? "null"}");
+                
+                if (graphData.adjList.nodes != null)
                 {
-                    Debug.Log($"  - {node}");
+                    Debug.Log($"Nodes ({graphData.adjList.nodes.Count}):");
+                    for (int i = 0; i < graphData.adjList.nodes.Count; i++)
+                    {
+                        var node = graphData.adjList.nodes[i];
+                        Debug.Log($"  Node {i + 1}:");
+                        Debug.Log($"    ID: {node.id ?? "null"}");
+                        Debug.Log($"    Topic: {node.topic ?? "null"}");
+                        Debug.Log($"    Summary: {node.overall_summary ?? "null"}");
+                        Debug.Log($"    Resources: {node.resources ?? "null"}");
+                        if (node.small_content != null && node.small_content.Count > 0)
+                        {
+                            Debug.Log($"    Content ({node.small_content.Count} items):");
+                            foreach (var content in node.small_content)
+                            {
+                                Debug.Log($"      - {content}");
+                            }
+                        }
+                    }
                 }
-                Debug.Log($"Edges ({graphData.adjList.edges.Count}):");
-                foreach (var edge in graphData.adjList.edges)
+                else
                 {
-                    Debug.Log($"  - {edge[0]} -> {edge[1]}");
+                    Debug.LogWarning("[LearningGraphAssistant] Nodes list is null");
                 }
+                
+                if (graphData.adjList.edges != null)
+                {
+                    Debug.Log($"Edges ({graphData.adjList.edges.Count}):");
+                    foreach (var edge in graphData.adjList.edges)
+                    {
+                        if (edge != null && edge.Length >= 2)
+                        {
+                            Debug.Log($"  - {edge[0]} -> {edge[1]}");
+                        }
+                    }
+                }
+                else
+                {
+                    Debug.LogWarning("[LearningGraphAssistant] Edges list is null");
+                }
+                
                 Debug.Log($"Total knowledge entries: {knowledgeGraphHistory.Count}");
                 Debug.Log("=== END KNOWLEDGE GRAPH DATA ===");
+            }
+            else if (graphData != null && graphData.adjList == null)
+            {
+                Debug.LogError("[LearningGraphAssistant] graphData.adjList is null - JSON parsing incomplete");
             }
             else
             {
