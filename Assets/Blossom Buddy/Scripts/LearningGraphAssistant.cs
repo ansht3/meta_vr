@@ -1,0 +1,401 @@
+using UnityEngine;
+using System.Collections;
+using System.Collections.Generic;
+using Meta.XR.BuildingBlocks.AIBlocks;
+using System.IO;
+using System.Text;
+using System;
+using Meta.XR;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+[System.Serializable]
+public class KnowledgeGraphData
+{
+    public AdjacencyList adjList;
+    
+    public override string ToString()
+    {
+        if (adjList == null) return "Empty graph";
+        return $"Subject: {adjList.subject}\nNodes: {adjList.nodes?.Count ?? 0}\nEdges: {adjList.edges?.Count ?? 0}";
+    }
+}
+
+[System.Serializable]
+public class AdjacencyList
+{
+    public string subject;
+    public List<GraphNode> nodes;
+    public List<string[]> edges;
+}
+
+[System.Serializable]
+public class GraphNode
+{
+    public string id;
+    public string topic;
+    public List<string> small_content;
+    public string resources;
+    public string overall_summary;
+    
+    public override string ToString()
+    {
+        return $"[{id}] {topic}: {overall_summary}";
+    }
+}
+
+public class LearningGraphAssistant : MonoBehaviour
+{
+    [Header("AI Components")]
+    [SerializeField] private SpeechToTextAgent stt;
+    [SerializeField] private LlmAgent llm;
+    [SerializeField] private TextToSpeechAgent tts;
+
+    [Header("Stored Knowledge Data")]
+    public List<KnowledgeGraphData> knowledgeGraphHistory = new List<KnowledgeGraphData>();
+    
+    [Header("Dev Settings")]
+    [SerializeField] private bool printResponsesToConsole = true;
+    [SerializeField] private bool useVisionMode = true;
+    [Tooltip("Additional context to add when vision is used")]
+    [SerializeField] private string visionContext = "Analyze the problem or content visible in the image and incorporate it into your learning graph.";
+
+    private PassthroughCameraAccess _ptCam;
+
+    [Header("System Prompt")]
+    [TextArea(6, 12)]
+        public string systemPrompt =
+        "You are a learning assistant. Create a HIGH-LEVEL conceptual learning graph. Focus on BROAD topics and fundamental concepts, NOT step-by-step instructions.\n\n" +
+        "Respond with ONLY JSON in this format:\n" +
+        "{\n" +
+        "  \"adjList\": {\n" +
+        "    \"subject\": \"<broad topic area — e.g. 'Graph Algorithms for Technical Interviews'>\",\n" +
+        "    \"nodes\": [\n" +
+        "      { \"id\": \"<unique_id>\", \"topic\": \"<BROAD concept like 'DFS', 'Graph Theory', 'Interview Patterns'>\", \"small_content\": [\"<1-2 key insights>\"], \"resources\": \"<relevant links>\", \"overall_summary\": \"<why this concept matters>\" }\n" +
+        "    ],\n" +
+        "    \"edges\": [[\"<prerequisite_id>\", \"<node_id>\"]]\n" +
+        "  }\n" +
+        "}\n\n" +
+        "Create 3-6 nodes representing MAJOR concepts or knowledge areas. Each node should be a fundamental topic (e.g., 'Depth-First Search', 'Interview Strategy', 'Problem Patterns'), NOT granular steps. " +
+        "EDGES represent PREREQUISITES: [\"<prerequisite_id>\", \"<node_id>\"] means prerequisite_id must be learned BEFORE node_id. Example: [\"graph_basics\", \"dfs\"] means learn graph basics before DFS. " +
+        "Connect nodes showing clear prerequisite relationships. Focus on what the user needs to LEARN, not how to solve one specific problem. NO markdown, NO code fences, NO extra text outside JSON.";
+
+    private bool isListening = false;
+    public bool IsListening => isListening;
+    private Coroutine listenTimeoutCoroutine;
+
+        private void Awake()
+    {
+        // Auto-find AI components if not assigned
+        if (stt == null) stt = FindAnyObjectByType<SpeechToTextAgent>();
+        if (llm == null) llm = FindAnyObjectByType<LlmAgent>();
+        if (tts == null) tts = FindAnyObjectByType<TextToSpeechAgent>();
+        _ptCam = FindAnyObjectByType<PassthroughCameraAccess>();
+        
+        Debug.Log($"[LearningGraphAssistant] Components found - STT: {stt != null}, LLM: {llm != null}, TTS: {tts != null}, Camera: {_ptCam != null}");
+        Debug.Log($"[LearningGraphAssistant] Vision mode: {useVisionMode}");
+        Debug.Log($"[LearningGraphAssistant] Current System Prompt:\n{systemPrompt}");
+    }
+
+    public void StartVoiceCapture()
+    {
+        Debug.Log("[LearningGraphAssistant] StartVoiceCapture called");
+        
+        if (isListening)
+        {
+            Debug.LogWarning("[LearningGraphAssistant] Already listening, ignoring request");
+            return;
+        }
+        
+        if (stt == null)
+        {
+            Debug.LogError("[LearningGraphAssistant] SpeechToTextAgent not found! Cannot start voice capture.");
+            return;
+        }
+        
+        if (llm == null)
+        {
+            Debug.LogError("[LearningGraphAssistant] LlmAgent not found! Cannot process queries.");
+            return;
+        }
+
+        isListening = true;
+        Debug.Log("[LearningGraphAssistant] Listening for user query...");
+        stt.onTranscript.AddListener(OnTranscriptReceived);
+        stt.StartListening();
+        if (listenTimeoutCoroutine != null)
+        {
+            StopCoroutine(listenTimeoutCoroutine);
+            listenTimeoutCoroutine = null;
+        }
+        listenTimeoutCoroutine = StartCoroutine(ListenTimeout(12f));
+    }
+
+    private void OnTranscriptReceived(string userText)
+    {
+        if (stt != null)
+        {
+            stt.onTranscript.RemoveListener(OnTranscriptReceived);
+        }
+        if (listenTimeoutCoroutine != null)
+        {
+            StopCoroutine(listenTimeoutCoroutine);
+            listenTimeoutCoroutine = null;
+        }
+        isListening = false;
+
+        if (string.IsNullOrWhiteSpace(userText))
+        {
+            Debug.LogWarning("[LearningGraphAssistant] Empty transcript, ignoring.");
+            return;
+        }
+
+        Debug.Log($"[LearningGraphAssistant] Heard: {userText}");
+        StartCoroutine(HandleQuery(userText));
+    }
+
+    private IEnumerator ListenTimeout(float seconds)
+    {
+        float elapsed = 0f;
+        while (elapsed < seconds && isListening)
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+        if (isListening)
+        {
+            Debug.LogWarning("[LearningGraphAssistant] Listening timed out, stopping.");
+            if (stt != null)
+            {
+                stt.onTranscript.RemoveListener(OnTranscriptReceived);
+            }
+            isListening = false;
+        }
+        listenTimeoutCoroutine = null;
+    }
+
+    private IEnumerator HandleQuery(string userQuery)
+    {
+        string llmReply = null;
+        void LlmCallback(string response) => llmReply = response;
+
+        llm.OnAssistantReply += LlmCallback;
+        
+        // Build the prompt with vision context if enabled
+        string finalPrompt = $"System: {systemPrompt}\n\nUser: {userQuery}";
+        if (useVisionMode && !string.IsNullOrEmpty(visionContext))
+        {
+            finalPrompt += $"\n\n{visionContext}";
+        }
+        
+        // Use vision mode if enabled and camera is available
+        bool canUseVision = useVisionMode && _ptCam != null && _ptCam.IsPlaying;
+        
+        Debug.Log($"[LearningGraphAssistant] Using vision mode: {canUseVision}");
+        Debug.Log($"[LearningGraphAssistant] Sending prompt: {finalPrompt}");
+        
+        if (canUseVision)
+        {
+            // Send with passthrough image (multimodal)
+            llm.SendPromptWithPassthroughImageAsync(finalPrompt);
+        }
+        else
+        {
+            // Fallback to text-only
+            llm.SendTextOnlyAsync(finalPrompt);
+        }
+
+        while (llmReply == null)
+            yield return null;
+
+        llm.OnAssistantReply -= LlmCallback;
+
+        // Print the full LLM response for debugging
+        if (printResponsesToConsole)
+        {
+            Debug.Log("=== LLM RESPONSE START ===");
+            Debug.Log($"[LearningGraphAssistant] Response length: {llmReply?.Length ?? 0} characters");
+            Debug.Log($"[LearningGraphAssistant] Response contains '{{': {llmReply?.Contains("{") ?? false}");
+            Debug.Log($"[LearningGraphAssistant] Response contains '}}': {llmReply?.Contains("}") ?? false}");
+            
+            // Log in chunks to avoid truncation
+            if (!string.IsNullOrEmpty(llmReply))
+            {
+                int chunkSize = 500;
+                for (int i = 0; i < llmReply.Length; i += chunkSize)
+                {
+                    int length = Mathf.Min(chunkSize, llmReply.Length - i);
+                    string chunk = llmReply.Substring(i, length);
+                    Debug.Log($"[LearningGraphAssistant] Response chunk {i / chunkSize + 1}: {chunk}");
+                }
+            }
+            Debug.Log("=== LLM RESPONSE END ===");
+        }
+
+        // (A) Speak the top part or entire reply
+        if (tts != null)
+        {
+            Debug.Log("[LearningGraphAssistant] Speaking response via TTS");
+            // Extract only the spoken part (before JSON)
+            string spokenPart = llmReply;
+            int jsonStart = llmReply.IndexOf('{');
+            Debug.Log($"[LearningGraphAssistant] JSON start index: {jsonStart}");
+            
+            if (jsonStart > 0)
+            {
+                spokenPart = llmReply.Substring(0, jsonStart).Trim();
+            }
+            
+            Debug.Log($"[LearningGraphAssistant] Speaking text length: {spokenPart?.Length ?? 0}");
+            Debug.Log($"[LearningGraphAssistant] Speaking text: '{spokenPart}'");
+            tts.SpeakText(spokenPart);
+        }
+        else
+        {
+            Debug.LogWarning("[LearningGraphAssistant] TTS component not found, cannot speak response");
+        }
+
+        // (B) Extract JSON portion for knowledge graph
+        string jsonExtract = ExtractJsonOnly(llmReply);
+
+        if (!string.IsNullOrEmpty(jsonExtract))
+        {
+            Debug.Log("=== JSON EXTRACTION START ===");
+            Debug.Log($"[LearningGraphAssistant] Extracted JSON:\n{jsonExtract}");
+            
+            // Parse JSON into object
+            KnowledgeGraphData graphData = ParseJsonToObject(jsonExtract);
+            if (graphData != null)
+            {
+                knowledgeGraphHistory.Add(graphData);
+                Debug.Log("=== KNOWLEDGE GRAPH DATA ===");
+                Debug.Log($"Subject: {graphData.adjList.subject}");
+                Debug.Log($"Nodes ({graphData.adjList.nodes.Count}):");
+                foreach (var node in graphData.adjList.nodes)
+                {
+                    Debug.Log($"  - {node}");
+                }
+                Debug.Log($"Edges ({graphData.adjList.edges.Count}):");
+                foreach (var edge in graphData.adjList.edges)
+                {
+                    Debug.Log($"  - {edge[0]} -> {edge[1]}");
+                }
+                Debug.Log($"Total knowledge entries: {knowledgeGraphHistory.Count}");
+                Debug.Log("=== END KNOWLEDGE GRAPH DATA ===");
+            }
+            else
+            {
+                Debug.LogError("[LearningGraphAssistant] Failed to parse JSON into KnowledgeGraphData object");
+            }
+            Debug.Log("=== JSON EXTRACTION END ===");
+        }
+        else
+        {
+            Debug.LogWarning("[LearningGraphAssistant] No valid JSON found in the response.");
+            Debug.LogWarning($"[LearningGraphAssistant] Raw response was: {llmReply}");
+        }
+    }
+
+    private string ExtractJsonOnly(string text)
+    {
+        int start = text.IndexOf('{');
+        int end = text.LastIndexOf('}');
+        if (start >= 0 && end >= 0 && end > start)
+        {
+            return text.Substring(start, (end - start + 1));
+        }
+        return null;
+    }
+
+    private KnowledgeGraphData ParseJsonToObject(string jsonString)
+    {
+        try
+        {
+            Debug.Log($"[LearningGraphAssistant] Attempting to parse JSON: {jsonString}");
+
+            // Simple JSON parsing (you could use JsonUtility or Newtonsoft.Json for more robust parsing)
+            var graphData = JsonUtility.FromJson<KnowledgeGraphData>(jsonString);
+
+            if (graphData != null)
+            {
+                Debug.Log($"[LearningGraphAssistant] Successfully parsed JSON into KnowledgeGraphData:\n{graphData.ToString()}");
+                return graphData;
+            }
+            else
+            {
+                Debug.LogError("[LearningGraphAssistant] JsonUtility.FromJson returned null");
+                return null;
+            }
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogError($"[LearningGraphAssistant] Failed to parse JSON: {e.Message}");
+            Debug.LogError($"[LearningGraphAssistant] JSON string was: {jsonString}");
+            return null;
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (listenTimeoutCoroutine != null)
+        {
+            StopCoroutine(listenTimeoutCoroutine);
+            listenTimeoutCoroutine = null;
+        }
+        if (stt != null)
+        {
+            stt.onTranscript.RemoveListener(OnTranscriptReceived);
+        }
+        isListening = false;
+    }
+
+#if UNITY_EDITOR
+    [ContextMenu("Test Voice Capture")]
+    private void __TestVoiceCapture() => StartVoiceCapture();
+
+    [ContextMenu("Test JSON Parsing")]
+    private void __TestJsonParsing()
+    {
+        string testJson = @"{
+            ""topic"": ""Test Topic"",
+            ""subtopics"": [""Subtopic 1"", ""Subtopic 2"", ""Subtopic 3""],
+            ""summary"": ""This is a test JSON for development purposes."",
+            ""relations"": [
+                {""from"": ""Subtopic 1"", ""to"": ""Subtopic 2"", ""type"": ""related""}
+            ]
+        }";
+
+        Debug.Log("=== TEST JSON PARSING ===");
+        KnowledgeGraphData testData = ParseJsonToObject(testJson);
+        if (testData != null)
+        {
+            knowledgeGraphHistory.Add(testData);
+            Debug.Log($"Test data added to history. Total entries: {knowledgeGraphHistory.Count}");
+            Debug.Log($"Test data: {testData}");
+        }
+        Debug.Log("=== END TEST JSON PARSING ===");
+    }
+
+    [ContextMenu("Print Knowledge History")]
+    private void __PrintKnowledgeHistory()
+    {
+        Debug.Log("=== KNOWLEDGE HISTORY ===");
+        Debug.Log($"Total entries: {knowledgeGraphHistory.Count}");
+        for (int i = 0; i < knowledgeGraphHistory.Count; i++)
+        {
+            Debug.Log($"Entry {i + 1}: {knowledgeGraphHistory[i]}");
+        }
+        Debug.Log("=== END KNOWLEDGE HISTORY ===");
+    }
+
+    [ContextMenu("Clear Knowledge History")]
+    private void __ClearKnowledgeHistory()
+    {
+        knowledgeGraphHistory.Clear();
+        Debug.Log("[LearningGraphAssistant] Knowledge history cleared.");
+    }
+#endif
+}
+
+
