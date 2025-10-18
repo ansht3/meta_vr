@@ -12,7 +12,7 @@ namespace BlossomBuddy.Graphs
     {
         [Header("Validation Settings")]
         [SerializeField] private string jsonFileName = "example.json";
-        [Tooltip("JSON file should be located in Assets/Blossom Buddy/Scripts/graph_data/")]
+        [Tooltip("JSON file should be located in Assets/StreamingAssets/graph_data/")]
 
         [Header("Validation Results")]
         [SerializeField] private bool isValid = false;
@@ -29,7 +29,7 @@ namespace BlossomBuddy.Graphs
         {
             ClearResults();
             
-            string filePath = Path.Combine(Application.dataPath, "Blossom Buddy", "Scripts", "graph_data", jsonFileName);
+            string filePath = Path.Combine(Application.streamingAssetsPath, "graph_data", jsonFileName);
 
             Debug.Log($"=== Validating JSON: {jsonFileName} ===");
 

@@ -1,6 +1,8 @@
 using UnityEngine;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine.Networking;
 
 namespace BlossomBuddy.Graphs
 {
@@ -22,7 +24,7 @@ namespace BlossomBuddy.Graphs
 
         [Header("JSON Settings")]
         [SerializeField] private string jsonFileName = "example.json";
-        [Tooltip("JSON file should be located in Assets/Blossom Buddy/Scripts/graph_data/")]
+        [Tooltip("JSON file should be located in Assets/StreamingAssets/graph_data/")]
 
         [Header("Layout Settings")]
         [SerializeField] private float nodeSpacing = 2f;
@@ -55,44 +57,87 @@ namespace BlossomBuddy.Graphs
                 edgesParent = parent.transform;
             }
 
-            LoadGraphFromJSON();
-            CreateNodeVisuals();
-            
-            if (showEdges)
-            {
-                CreateEdgeVisuals();
-            }
+            StartCoroutine(LoadGraphFromJSONCoroutine());
         }
 
         /// <summary>
-        /// Load graph data from JSON file
+        /// Load graph data from JSON file (Coroutine for cross-platform support)
         /// </summary>
-        private void LoadGraphFromJSON()
+        private IEnumerator LoadGraphFromJSONCoroutine()
         {
-            string filePath = Path.Combine(Application.dataPath, "Blossom Buddy", "Scripts", "graph_data", jsonFileName);
+            string filePath = Path.Combine(Application.streamingAssetsPath, "graph_data", jsonFileName);
+            
+            Debug.Log($"GraphManager: Loading JSON from {filePath}");
 
-            if (!File.Exists(filePath))
+            string jsonContent = null;
+
+            // On Android, StreamingAssets requires UnityWebRequest
+            if (Application.platform == RuntimePlatform.Android)
             {
-                Debug.LogError($"GraphManager: JSON file not found at {filePath}");
-                return;
+                UnityWebRequest request = UnityWebRequest.Get(filePath);
+                yield return request.SendWebRequest();
+
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    jsonContent = request.downloadHandler.text;
+                }
+                else
+                {
+                    Debug.LogError($"GraphManager: Failed to load JSON from {filePath}");
+                    Debug.LogError($"Error: {request.error}");
+                    yield break;
+                }
+            }
+            else
+            {
+                // On other platforms, use File.ReadAllText
+                if (!File.Exists(filePath))
+                {
+                    Debug.LogError($"GraphManager: JSON file not found at {filePath}");
+                    yield break;
+                }
+
+                try
+                {
+                    jsonContent = File.ReadAllText(filePath);
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"GraphManager: Error reading file: {e.Message}");
+                    yield break;
+                }
+            }
+
+            // Parse JSON
+            if (string.IsNullOrEmpty(jsonContent))
+            {
+                Debug.LogError("GraphManager: JSON content is empty");
+                yield break;
             }
 
             try
             {
-                string jsonContent = File.ReadAllText(filePath);
                 graphData = JsonUtility.FromJson<GraphData>(jsonContent);
 
                 if (graphData == null || graphData.adjList == null)
                 {
                     Debug.LogError("GraphManager: Failed to parse JSON data");
-                    return;
+                    yield break;
                 }
 
                 Debug.Log($"GraphManager: Successfully loaded graph '{graphData.adjList.subject}' with {graphData.adjList.nodes.Count} nodes");
+
+                // Create visuals after loading
+                CreateNodeVisuals();
+                
+                if (showEdges)
+                {
+                    CreateEdgeVisuals();
+                }
             }
             catch (System.Exception e)
             {
-                Debug.LogError($"GraphManager: Error loading JSON: {e.Message}");
+                Debug.LogError($"GraphManager: Error parsing JSON: {e.Message}");
             }
         }
 
@@ -278,13 +323,7 @@ namespace BlossomBuddy.Graphs
             edgeObjects.Clear();
 
             // Reload
-            LoadGraphFromJSON();
-            CreateNodeVisuals();
-            
-            if (showEdges)
-            {
-                CreateEdgeVisuals();
-            }
+            StartCoroutine(LoadGraphFromJSONCoroutine());
         }
 
 #if UNITY_EDITOR

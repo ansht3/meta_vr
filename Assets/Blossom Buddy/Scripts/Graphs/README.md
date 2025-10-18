@@ -29,9 +29,10 @@ A complete Unity system for visualizing educational concept graphs in 3D space.
    - Configure settings (layout, colors, etc.)
 
 3. **Add JSON File:**
-   - Place your JSON file in `Assets/Blossom Buddy/Scripts/graph_data/`
+   - Place your JSON file in `Assets/StreamingAssets/graph_data/`
    - Set the filename in GraphManager
    - JSON must follow the required format (see below)
+   - **Note**: StreamingAssets folder required for Android/Quest VR support
 
 4. **Press Play!**
 

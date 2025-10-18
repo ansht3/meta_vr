@@ -93,8 +93,10 @@ The graph visualization system creates 3D representations of educational concept
 
 Your JSON files should be located at:
 ```
-Assets/Blossom Buddy/Scripts/graph_data/[filename].json
+Assets/StreamingAssets/graph_data/[filename].json
 ```
+
+**Important**: JSON files MUST be in the `StreamingAssets` folder to work on all platforms (especially Android/Quest VR).
 
 **JSON Structure:**
 ```json
