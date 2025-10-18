@@ -35,17 +35,11 @@ namespace BlossomBuddy.Graphs
         [SerializeField] private Transform graphParent;
         [SerializeField] private Transform edgesParent;
 
-        [Header("Info Panel")]
-        [SerializeField] private GameObject infoPanelPrefab;
-        [SerializeField] private bool autoCreateInfoPanel = true;
-        [SerializeField] private bool showAllPanelsPermanently = true;
-
         private GraphData graphData;
         private Dictionary<string, NodeView> nodeViews = new Dictionary<string, NodeView>();
         private Dictionary<string, GameObject> nodeObjects = new Dictionary<string, GameObject>();
         private List<EdgeView> edgeViews = new List<EdgeView>();
         private List<GameObject> edgeObjects = new List<GameObject>();
-        private NodeInfoPanel infoPanel;
 
         private void Start()
         {
@@ -63,13 +57,8 @@ namespace BlossomBuddy.Graphs
                 edgesParent = parent.transform;
             }
 
-            // Create template info panel if needed
-            if (autoCreateInfoPanel && showAllPanelsPermanently)
-            {
-                CreateInfoPanel();
-            }
-
-            StartCoroutine(LoadGraphFromJSONCoroutine());
+            // Don't load graph automatically - wait for external trigger
+            Debug.Log("GraphManager: Ready. No graph loaded at start. Waiting for LoadGraphFromData() call.");
         }
 
         /// <summary>
@@ -77,14 +66,29 @@ namespace BlossomBuddy.Graphs
         /// </summary>
         private IEnumerator LoadGraphFromJSONCoroutine()
         {
-            string filePath = Path.Combine(Application.streamingAssetsPath, "graph_data", jsonFileName);
+            // Try persistentDataPath first (writable, for dynamically generated graphs)
+            string persistentFilePath = Path.Combine(Application.persistentDataPath, "graph_data", jsonFileName);
+            string streamingFilePath = Path.Combine(Application.streamingAssetsPath, "graph_data", jsonFileName);
+            
+            string filePath = persistentFilePath;
+            bool usePersistent = File.Exists(persistentFilePath);
+            
+            if (!usePersistent)
+            {
+                filePath = streamingFilePath;
+                Debug.Log($"GraphManager: No file in persistentDataPath, using StreamingAssets");
+            }
+            else
+            {
+                Debug.Log($"GraphManager: Found file in persistentDataPath (dynamically generated)");
+            }
             
             Debug.Log($"GraphManager: Loading JSON from {filePath}");
 
             string jsonContent = null;
 
-            // On Android, StreamingAssets requires UnityWebRequest
-            if (Application.platform == RuntimePlatform.Android)
+            // On Android, StreamingAssets requires UnityWebRequest (but persistentDataPath can use File.ReadAllText)
+            if (Application.platform == RuntimePlatform.Android && !usePersistent)
             {
                 UnityWebRequest request = UnityWebRequest.Get(filePath);
                 yield return request.SendWebRequest();
@@ -102,7 +106,7 @@ namespace BlossomBuddy.Graphs
             }
             else
             {
-                // On other platforms, use File.ReadAllText
+                // On other platforms, or when using persistentDataPath, use File.ReadAllText
                 if (!File.Exists(filePath))
                 {
                     Debug.LogError($"GraphManager: JSON file not found at {filePath}");
@@ -187,13 +191,7 @@ namespace BlossomBuddy.Graphs
                     nodeView = nodeObject.AddComponent<NodeView>();
                 }
 
-                // Set info panel reference if available (nodes will clone it for themselves)
-                if (infoPanel != null && showAllPanelsPermanently)
-                {
-                    nodeView.SetInfoPanel(infoPanel);
-                }
-
-                // Initialize the node with data (this will create its own info panel)
+                // Initialize the node with data (this creates the text elements)
                 nodeView.Initialize(node);
 
                 // Store references
@@ -202,42 +200,6 @@ namespace BlossomBuddy.Graphs
             }
 
             Debug.Log($"GraphManager: Created {nodeCount} node visuals");
-        }
-
-        /// <summary>
-        /// Create the info panel for displaying node information
-        /// </summary>
-        private void CreateInfoPanel()
-        {
-            // Check if panel already exists
-            infoPanel = FindFirstObjectByType<NodeInfoPanel>();
-            
-            if (infoPanel != null)
-            {
-                Debug.Log("GraphManager: Found existing NodeInfoPanel");
-                return;
-            }
-
-            // Create from prefab if available
-            if (infoPanelPrefab != null)
-            {
-                GameObject panelObject = Instantiate(infoPanelPrefab);
-                panelObject.name = "NodeInfoPanel";
-                infoPanel = panelObject.GetComponent<NodeInfoPanel>();
-                
-                if (infoPanel != null)
-                {
-                    Debug.Log("GraphManager: Created NodeInfoPanel from prefab");
-                }
-                else
-                {
-                    Debug.LogError("GraphManager: Prefab does not have NodeInfoPanel component!");
-                }
-            }
-            else
-            {
-                Debug.LogWarning("GraphManager: No info panel prefab assigned. You'll need to create one manually.");
-            }
         }
 
         /// <summary>
@@ -367,6 +329,58 @@ namespace BlossomBuddy.Graphs
         public GraphData GetGraphData()
         {
             return graphData;
+        }
+
+        /// <summary>
+        /// Load graph from a GraphData object (no file needed)
+        /// </summary>
+        public void LoadGraphFromData(GraphData data)
+        {
+            if (data == null || data.adjList == null)
+            {
+                Debug.LogError("GraphManager: Cannot load null graph data");
+                return;
+            }
+
+            Debug.Log($"GraphManager: Loading graph from data object - Subject: {data.adjList.subject}");
+            
+            // Clear existing graph
+            ClearGraph();
+            
+            // Set the data
+            graphData = data;
+            
+            Debug.Log($"GraphManager: Successfully loaded graph '{graphData.adjList.subject}' with {graphData.adjList.nodes.Count} nodes");
+
+            // Create visuals
+            CreateNodeVisuals();
+            
+            if (showEdges)
+            {
+                CreateEdgeVisuals();
+            }
+        }
+
+        /// <summary>
+        /// Clear the current graph
+        /// </summary>
+        private void ClearGraph()
+        {
+            // Clear existing nodes
+            foreach (var nodeObject in nodeObjects.Values)
+            {
+                Destroy(nodeObject);
+            }
+            nodeViews.Clear();
+            nodeObjects.Clear();
+
+            // Clear existing edges
+            foreach (var edgeObject in edgeObjects)
+            {
+                Destroy(edgeObject);
+            }
+            edgeViews.Clear();
+            edgeObjects.Clear();
         }
 
         /// <summary>
