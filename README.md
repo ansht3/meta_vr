@@ -1,5 +1,5 @@
 
-# 🌌 Spatial Scholar — AI-Powered Knowledge in 3D
+# 🌌 Spatial Scholar — AI-Powered Knowledge in 3D - AI at Meta Hackathon
 
 ## 🚀 Mission
 
