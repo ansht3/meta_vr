@@ -1,8 +1,6 @@
 
 # 🌌 Spatial Scholar — AI at Meta Hackathon
 
-[![Watch the demo](https://img.youtube.com/vi/8RkEchuDLX4/maxresdefault.jpg)](https://youtube.com/shorts/8RkEchuDLX4)
-
 ## 🚀 Mission
 
 We’re bringing passion and curiosity back to learning by transforming abstract topics into immersive, explorable spatial experiences. Our belief is simple:
@@ -42,6 +40,10 @@ The LLM generates:
 The concept graph is visualized as floating, interactive nodes in the user’s passthrough space.
 	5.	Speech + Text Output
 Explanations are spoken aloud and stored for reuse or chaining.
+
+## Demo
+
+[![Watch the demo](https://img.youtube.com/vi/8RkEchuDLX4/maxresdefault.jpg)](https://youtube.com/shorts/8RkEchuDLX4)
 
 ⸻
 
