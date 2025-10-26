@@ -4,28 +4,11 @@
 
 All four of us had incredible opportunity to be selected as **50 students across the nation** to participate in the **AI @ Meta Hackathon** at Meta’s Global HQ in **Menlo Park, CA**, where we explored how **VR, AI, and mixed reality** can make life easier and more meaningful.
 
-🎯 **Our mission:** bring curiosity and intuition back to learning by turning abstract concepts into **immersive, hands-on experiences** in mixed reality.
-
-🧠 **Our Project – Spatial Scholar:**  
-We built a **VR learning companion** using **Meta Quest 3** that listens to what you want to learn, understands your voice, and anchors **interactive visual explanations** directly into your environment.
-
-For example, a student could ask:  
-> “Help me understand how neural networks learn.”  
-And watch concepts literally come to life — nodes appear across the room, highlighting prerequisite knowledge with real examples in a spatial graph while an AI assistant walks you through the explanation using **Meta’s Passthrough Camera API**.
-
-🔧 **What Powered It:**
-- Meta XR SDK & Passthrough API for spatial visualization and hand tracking  
-- Llama 4 AI Stack for contextual reasoning, JSON generation, and dialogue  
-- Unity + C# Integration for real-time speech recognition, TTS, and graph rendering  
-
-We believe **learning should feel alive — not passive.**  
-Spatial learning merges AI and XR to make education **intuitive, exploratory, and human.**
-
 ---
 
 ## 🚀 Mission
 
-We’re bringing passion and curiosity back to learning by transforming abstract topics into **immersive, explorable spatial experiences**.
+Bring curiosity and intuition back to learning by turning abstract concepts into **immersive, hands-on experiences** in mixed reality.
 
 The hard parts of learning — breaking down concepts, organizing knowledge, and visualizing relationships — should happen autonomously.
 
@@ -45,7 +28,11 @@ AI tutors exist — but they still live on flat screens. There’s no spatial me
 
 ## ✅ Our Solution
 
-We built an **AI-powered spatial learning assistant** for **Meta Quest** that turns any spoken request into an **interactive 3D knowledge map** — automatically.
+We built a **VR learning companion** using **Meta Quest 3** that listens to what you want to learn, understands your voice, and anchors **immersive, explorable spatial experiences** directly into your environment. In our application, we enable any spoken request to turn into an **interactive 3D knowledge map** — automatically.
+
+For example, a student could ask:  
+> “Help me understand how neural networks learn.”  
+And watch concepts literally come to life — nodes appear across the room, highlighting prerequisite knowledge with real examples in a spatial graph while an AI assistant walks you through the explanation using **Meta’s Passthrough Camera API**.
 
 ---
 
@@ -78,24 +65,24 @@ We built an **AI-powered spatial learning assistant** for **Meta Quest** that tu
 
 ---
 
-## 🧩 Tech Stack
+## 🔧 Tech Stack
 
 **Hardware**  
-- Meta Quest 3  
+- **Meta Quest 3** — primary MR device for spatial tracking, hand gestures, and passthrough visualization  
 
 **Core Technologies**  
-- Unity (C#)  
-- Meta XR SDK (Passthrough, Voice, AI Blocks)  
-- LlmAgent, SpeechToTextAgent, TextToSpeechAgent  
-- Custom JSON Graph Parsing & Rendering  
+- **Unity (C#)** — real-time speech recognition, TTS, and graph rendering  
+- **Meta XR SDK** — Passthrough, Voice, and AI Blocks for spatial visualization  
+- **Custom Agents** — LlmAgent, SpeechToTextAgent, TextToSpeechAgent for dialogue, voice, and response orchestration  
+- **JSON Graph Parser** — converts AI outputs into structured 3D graph data  
 
 **AI**  
-- Llama 4 (via Meta or Hugging Face provider)  
-- JSON-based knowledge graph generation  
+- **Llama 4** — contextual reasoning, dialogue generation, and knowledge extraction  
+- **Hugging Face & ElevenLabs** — model integration for reasoning and speech synthesis  
 
 **Visualization**  
-- 3D Nodes & Edges rendered dynamically  
-- Anchored in passthrough camera space  
+- **3D Dynamic Graphs** — nodes and edges rendered in real time within the passthrough environment  
+- **Spatial Anchoring** — graphs positioned in user’s real-world space for immersive learning  
 
 ---
 
@@ -143,6 +130,7 @@ We don’t force learners to adapt — the system adapts to them.
 ---
 
 ## 🤝 Team Statement
+
 
 We believe learning should feel like exploration, not obligation.  
 By combining **AI and spatial computing**, we’re making knowledge something you can **see, move through, and remember**.
