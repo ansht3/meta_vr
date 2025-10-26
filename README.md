@@ -2,7 +2,7 @@
 
 ## 🏆 Overview
 
-All five of us had incredible opportunity to be selected as **50 students across the nation** to participate in the **AI @ Meta Hackathon** at Meta’s Global HQ in **Menlo Park, CA**, where we explored how **VR, AI, and mixed reality** can make life easier and more meaningful.
+We were among the **50 students selected across the nation** to participate in the **AI at Meta Hackathon 2025** at Meta’s Global HQ in **Menlo Park, CA**, where we explored how **VR, AI, and mixed reality** can make life easier and more meaningful.
 
 ---
 
