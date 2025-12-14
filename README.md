@@ -1,6 +1,10 @@
 # Spatial Scholar - AI @ Meta Hackathon
 
-Spatial Scholar is a mixed reality learning companion built for **Meta Quest 3** during the **AI at Meta Hackathon 2025 (Menlo Park, CA)**. It turns a spoken learning request into an **interactive 3D concept map** anchored in your real space, with an AI-guided explanation.
+We were among the students across the nation to participate in the AI @ Meta Hackathon at Meta's global HQ in Menlo Park, CA, where we explored how VR, AI, and mixed reality can make life easier and more meaningful.
+
+## What we built
+
+Spatial Scholar is a mixed reality learning companion built for the **Meta Quest 3**. It turns a spoken learning request into an **interactive 3D concept map** anchored in your real space, with an AI-guided explanation.
 
 ## Demo
 
