@@ -1,136 +1,64 @@
-# 🌌 Spatial Scholar — AI at Meta Hackathon
+# Spatial Scholar - AI @ Meta Hackathon
 
-## 🏆 Overview
+Spatial Scholar is a mixed reality learning companion built for **Meta Quest 3** during the **AI at Meta Hackathon 2025 (Menlo Park, CA)**. It turns a spoken learning request into an **interactive 3D concept map** anchored in your real space, with an AI-guided explanation.
 
-We were among the **50 students selected across the nation** to participate in the **AI at Meta Hackathon 2025** at Meta’s Global HQ in **Menlo Park, CA**, where we explored how **VR, AI, and mixed reality** can make life easier and more meaningful.
-
----
-
-## 🚀 Mission
-
-Bring curiosity and intuition back to learning by turning abstract concepts into **immersive, hands-on experiences** in mixed reality.
-
-The hard parts of learning — breaking down concepts, organizing knowledge, and visualizing relationships — should happen autonomously.
-
----
-
-## 🎯 The Problem
-
-Learning is still stuck in 2D — PDFs, videos, flashcards, and chatbot windows. This makes it hard for learners to:
-- Visualize abstract concepts  
-- Understand how topics connect  
-- Stay engaged long enough to retain information  
-- Get explanations tailored to their mental model  
-
-AI tutors exist — but they still live on flat screens. There’s no spatial memory, no immersion, and no embodied understanding.
-
----
-
-## ✅ Our Solution
-
-We built a **VR learning companion** using **Meta Quest 3** that listens to what you want to learn, understands your voice, and anchors **immersive, explorable spatial experiences** directly into your environment. In our application, we enable any spoken request to turn into an **interactive 3D knowledge map** — automatically.
-
-For example, a student could ask:  
-> “Help me understand how neural networks learn.”  
-And watch concepts literally come to life — nodes appear across the room, highlighting prerequisite knowledge with real examples in a spatial graph while an AI assistant walks you through the explanation using **Meta’s Passthrough Camera API**.
-
----
-
-## 🧠 How It Works
-
-1. **Voice Input**  
-   The learner says something like:  
-   “I need help learning binary trees.”  
-   “Teach me BFS and DFS.”  
-
-2. **LLM Understanding (Llama Integration)**  
-   The system sends the request to a structured Llama prompt.  
-
-3. **Autonomous Topic Breakdown**  
-   The LLM generates:  
-   - ✅ A spoken explanation  
-   - ✅ A structured JSON concept graph (nodes + relationships)  
-
-4. **3D Rendering in VR**  
-   The concept graph is visualized as floating, interactive nodes in the user’s passthrough space.  
-
-5. **Speech + Text Output**  
-   Explanations are spoken aloud and stored for reuse or chaining.  
-
----
-
-## 🎥 Demo
+## Demo
 
 [![Watch the demo](https://img.youtube.com/vi/8RkEchuDLX4/maxresdefault.jpg)](https://youtube.com/shorts/8RkEchuDLX4)
 
----
+## What it does
 
-## 🔧 Tech Stack
+- **Voice → lesson**: you ask a question out loud (e.g., “Teach me BFS vs DFS”)
+- **Concept breakdown**: the system generates a short explanation + a structured concept graph
+- **3D visualization**: nodes/edges render as a spatial graph in passthrough
+- **Speech + text**: the explanation is spoken and saved for reuse
 
-**Hardware**  
-- **Meta Quest 3** — primary MR device for spatial tracking, hand gestures, and passthrough visualization  
+## Why we built it
 
-**Core Technologies**  
-- **Unity (C#)** — real-time speech recognition, TTS, and graph rendering  
-- **Meta XR SDK** — Passthrough, Voice, and AI Blocks for spatial visualization  
-- **Custom Agents** — LlmAgent, SpeechToTextAgent, TextToSpeechAgent for dialogue, voice, and response orchestration  
-- **JSON Graph Parser** — converts AI outputs into structured 3D graph data  
+Learning content still lives on flat screens (docs, videos, chat windows). We wanted a way to:
+- visualize abstract topics in 3D
+- show relationships/prereqs spatially
+- make explanations feel more “hands-on” and memorable
 
-**AI**  
-- **Llama 4** — contextual reasoning, dialogue generation, and knowledge extraction  
-- **Hugging Face & ElevenLabs** — model integration for reasoning and speech synthesis  
+## How it works (high level)
 
-**Visualization**  
-- **3D Dynamic Graphs** — nodes and edges rendered in real time within the passthrough environment  
-- **Spatial Anchoring** — graphs positioned in user’s real-world space for immersive learning  
+1. **Speech input** in Unity  
+2. A structured prompt is sent to **Llama 4**  
+3. The model returns:
+   - a short explanation
+   - a **JSON concept graph** (nodes + relationships)
+4. Unity parses the JSON and renders a **dynamic 3D graph** in passthrough
+5. **TTS** reads the explanation out loud
 
----
+## Tech stack
 
-## 🔥 Why It’s Different
+- **Meta Quest 3**
+- **Unity (C#)**
+- **Meta XR SDK** (passthrough / spatial visualization)
+- **Llama 4** (reasoning + JSON graph generation)
+- **Hugging Face + ElevenLabs** (model + speech integration)
+- Custom agents:
+  - `LlmAgent`
+  - `SpeechToTextAgent`
+  - `TextToSpeechAgent`
+- JSON graph parser + runtime graph layout/renderer
 
-This isn’t VR as a gimmick — it uses spatial computing where it’s strongest:
-- 🧠 Spatial memory & embodied cognition  
-- 🌐 Topic mapping in 3D space  
-- 🎙️ Voice-driven knowledge generation  
-- 🛠️ Autonomous visualization of abstract ideas  
+## Current MVP
 
-We don’t force learners to adapt — the system adapts to them.
+- Voice-based requests
+- LLM explanation output (speech + text)
+- JSON concept graph generation
+- 3D nodes + edges in passthrough
+- Expandable/interactable graph layout
 
----
+## Next steps
 
-## 📌 Example Use Cases
+- Hand-based node expansion and richer visual subtopics
+- Persistent “knowledge rooms”
+- Multi-user sessions
+- Light assessments (quick checks / recall prompts)
+- Optional integrations (Canvas / Google Classroom)
 
-- Interactive explanations of LeetCode algorithms  
-- Physics and math visual breakdowns  
-- Biology & anatomy relationships  
-- Language learning mind maps  
-- Onboarding / training modules  
+## Team
 
----
-
-## ✅ MVP Features (Current)
-
-- ✅ Voice-based topic requests  
-- ✅ LLM explanations (speech + text)  
-- ✅ JSON concept graph generation  
-- ✅ 3D node/edge visualization  
-- ✅ Interactive, expandable layout  
-
----
-
-## 🎯 Next Steps
-
-- Integration with learning services (Canvas, Google Classroom)  
-- Hand-based node expansion  
-- Visual subtopics & diagrams  
-- Persistent “knowledge rooms”  
-- Multi-user collaborative sessions  
-- Interactive assessments  
-
----
-
-## 🤝 Team Statement
-
-
-We believe learning should feel like exploration, not obligation.  
-By combining **AI and spatial computing**, we’re making knowledge something you can **see, move through, and remember**.
+Built by Ansh, Riten, Vinay, Ashlie, and Nathan
