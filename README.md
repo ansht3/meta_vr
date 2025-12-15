@@ -1,6 +1,6 @@
-# Spatial Scholar - AI @ Meta
+# Spatial Scholar - AI @ Meta Hackathon
 
-We were among the students across the nation to participate in the AI @ Meta Hackathon at Meta's global HQ in Menlo Park, CA, where we explored how VR, AI, and mixed reality can make life easier and more meaningful.
+We were among the 50 students across the nation to participate in the AI @ Meta Hackathon at Meta's global HQ in Menlo Park, CA, where we explored how VR, AI, and mixed reality can make life easier and more meaningful.
 
 ## Our Idea
 
